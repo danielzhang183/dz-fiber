@@ -1,20 +1,23 @@
-import express from 'express'
+import express from 'express';
 
-const app = express()
+const app = express();
+
+app.use(express.static('dist'));
 
 const template = `
   <html>
     <head>
-      <titile>React Fiber</titile>
+      <title>React Fiber</title>
     </head>
     <body>
       <div id="root"></div>
+      <script src="bundle.js"></script>
     </body>
   </html>
-`
+`;
 
 app.get('*', (req, res) => {
-  res.send(template)
-})
+  res.send(template);
+});
 
-app.listen(3000, () => console.log('server is running'))
+app.listen(3000, () => console.log('server is running'));
