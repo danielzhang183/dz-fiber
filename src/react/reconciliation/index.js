@@ -1,4 +1,4 @@
-import { arrified, createTaskQueue } from '../Misc';
+import { arrified, createStateNode, createTaskQueue } from '../Misc';
 
 const taskQueue = createTaskQueue();
 let subTask = null;
@@ -24,9 +24,9 @@ const reconcileChildren = (fiber, children) => {
       tag: 'host_component',
       effects: [],
       effectTag: 'placement',
-      stateNode: null,
       parent: fiber,
     };
+    newFiber.stateNode = createStateNode(newFiber);
     if (index === 0) { // 父级fiber添加子级fiber
       fiber.child = newFiber;
     } else { // 为fiber添加下一个兄弟fiber
@@ -38,6 +38,7 @@ const reconcileChildren = (fiber, children) => {
 
 const executeTask = (fiber) => {
   reconcileChildren(fiber, fiber.props.children);
+  // console.log(fiber)
 };
 
 const workLoop = (deadline) => {
