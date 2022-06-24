@@ -41,14 +41,21 @@ const executeTask = (fiber) => {
   if (fiber.child) {
     return fiber.child
   }
-  console.log(fiber)
+
+  let currentExcutelyFiber = fiber
+  while (currentExcutelyFiber.parent) {
+    if (currentExcutelyFiber.sibling) {
+      return currentExcutelyFiber.sibling
+    }
+    currentExcutelyFiber = currentExcutelyFiber.parent
+  }
 };
 
 const workLoop = (deadline) => {
   if (!subTask) {
     subTask = getFirstTask();
   }
-  while (subTask && deadline.timeRemaining() > 1) {
+  while (subTask) {
     subTask = executeTask(subTask);
   }
 };
