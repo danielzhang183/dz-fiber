@@ -1,4 +1,6 @@
-import React from './react'
+import React, { render } from './react'
+
+const root = document.getElementById('root')
 
 const jsx = (
   <div>
@@ -6,4 +8,4 @@ const jsx = (
   </div>
 )
 
-console.log(jsx)
+render(jsx, root)
