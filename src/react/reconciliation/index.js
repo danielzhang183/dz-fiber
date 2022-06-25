@@ -1,6 +1,37 @@
 import { updateNodeElement } from '../DOM';
 import { arrified, createStateNode, createTaskQueue, getTag } from '../Misc';
 
+const [
+  HOST_ROOT,
+  HOST_COMPONENT,
+  CLASS_COMPONENT,
+  FUNCTION_COMPONENT,
+] = [
+    'host_root',
+    'host_component',
+    'class_component',
+    'function_component',
+  ]
+const [
+  DELETE,
+  UPDATE,
+  PLACEMENT,
+] = [
+    'delete',
+    'update',
+    'placement',
+  ]
+const FIBER_TAG = {
+  HOST_ROOT,
+  HOST_COMPONENT,
+  CLASS_COMPONENT,
+  FUNCTION_COMPONENT,
+}
+const EFFECT_TAG = {
+  DELETE,
+  UPDATE,
+  PLACEMENT,
+}
 const taskQueue = createTaskQueue();
 let subTask = null;
 let pendingCommit = null
@@ -8,22 +39,26 @@ let pendingCommit = null
 const commitAllWork = (fiber) => {
   // 根据effects数组 构建DOM节点树
   fiber.effects.forEach((item) => {
-    if (item.effectTag === 'update') {
-      if (item.type === item.alternate.type) {
-        updateNodeElement(item.stateNode, item, item.alternate)
-      } else {
-        item.parent.stateNode.replaceChild(item.stateNode, item.alternate.stateNode)
-      }
-    } else if (item.effectTag === 'placement') {
-      const fiber = item
-      let parentFiber = item.parent
-      while (parentFiber.tag === 'class_component'
-        || parentFiber.tag === 'function_component') {
-        parentFiber = parentFiber.parent
-      }
-      if (fiber.tag === 'host_component') {
-        parentFiber.stateNode.appendChild(fiber.stateNode)
-      }
+    switch (item.effectTag) {
+      case EFFECT_TAG.DELETE:
+        item.parent.stateNode.removeChild(item.stateNode)
+        break;
+      case EFFECT_TAG.UPDATE:
+        item.type === item.alternate.type
+          ? updateNodeElement(item.stateNode, item, item.alternate)
+          : item.parent.stateNode.replaceChild(item.stateNode, item.alternate.stateNode)
+        break;
+      case EFFECT_TAG.PLACEMENT:
+        const fiber = item
+        let parentFiber = item.parent
+        while ([FIBER_TAG.CLASS_COMPONENT, FIBER_TAG.FUNCTION_COMPONENT].includes(parentFiber.tag)) {
+          parentFiber = parentFiber.parent
+        }
+        if (fiber.tag === FIBER_TAG.HOST_COMPONENT) {
+          parentFiber.stateNode.appendChild(fiber.stateNode)
+        }
+        break;
+      default:
     }
   })
   // 备份旧的fiber对象
@@ -35,7 +70,7 @@ const getFirstTask = () => {
   return {
     props: task.props,
     stateNode: task.dom,
-    tag: 'host_root',
+    tag: FIBER_TAG.HOST_ROOT,
     effects: [],
     child: null,
     alternate: task.dom.__rootFiberContainer,
@@ -47,9 +82,7 @@ const reconcileChildren = (fiber, children) => {
   let newFiber;
   let prevFiber;
   let alternate;
-  if (fiber.alternate?.child) {
-    alternate = fiber.alternate.child
-  }
+  alternate = fiber.alternate?.child || null
   arrifiedChildren.forEach((child, index) => {
     const baseFiber = {
       type: child.type,
@@ -58,10 +91,13 @@ const reconcileChildren = (fiber, children) => {
       effects: [],
       parent: fiber,
     }
-    if (child && alternate) {
+    if (!child && alternate) {
+      alternate.effectTag = EFFECT_TAG.DELETE
+      fiber.effects.push(alternate)
+    } if (child && alternate) {
       newFiber = {
         ...baseFiber,
-        effectTag: 'update',
+        effectTag: EFFECT_TAG.UPDATE,
         alternate
       };
       if (child.type === alternate.type) {
@@ -72,13 +108,13 @@ const reconcileChildren = (fiber, children) => {
     } else if (child && !alternate) {
       newFiber = {
         ...baseFiber,
-        effectTag: 'placement',
+        effectTag: EFFECT_TAG.PLACEMENT,
       };
       newFiber.stateNode = createStateNode(newFiber);
     }
     if (index === 0) { // 父级fiber添加子级fiber
       fiber.child = newFiber;
-    } else { // 为fiber添加下一个兄弟fiber
+    } else if (child) { // 为fiber添加下一个兄弟fiber
       prevFiber.sibling = newFiber;
     }
     alternate = alternate?.sibling || null
@@ -87,18 +123,19 @@ const reconcileChildren = (fiber, children) => {
 };
 
 const executeTask = (fiber) => {
-  console.log(fiber)
-  if (fiber.tag === 'class_component') {
-    reconcileChildren(fiber, fiber.stateNode.render())
-  } else if (fiber.tag === 'function_component') {
-    reconcileChildren(fiber, fiber.stateNode(fiber.props))
-  } else {
-    reconcileChildren(fiber, fiber.props.children);
+  switch (fiber.tag) {
+    case FIBER_TAG.CLASS_COMPONENT:
+      reconcileChildren(fiber, fiber.stateNode.render())
+      break;
+    case FIBER_TAG.FUNCTION_COMPONENT:
+      reconcileChildren(fiber, fiber.stateNode(fiber.props))
+      break;
+    default:
+      reconcileChildren(fiber, fiber.props.children);
   }
   if (fiber.child) {
     return fiber.child
   }
-
   // 如果存在同级 返回同级 构建同级的子级
   // 如果同级不存在 返回到父级 看父级是否有子级
   let currentExcutelyFiber = fiber

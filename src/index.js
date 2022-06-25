@@ -11,7 +11,6 @@ const jsx = (
 render(jsx, root)
 const newJsx = (
   <div>
-    <div>Hello Dylan</div>
     <p>Hello Fiber</p>
   </div>
 )
