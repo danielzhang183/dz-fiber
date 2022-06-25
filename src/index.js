@@ -8,8 +8,14 @@ const jsx = (
     <p>Hello Fiber</p>
   </div>
 )
-
-// render(jsx, root)
+render(jsx, root)
+const newJsx = (
+  <div>
+    <div>Hello Dylan</div>
+    <p>Hello Fiber</p>
+  </div>
+)
+setTimeout(() => render(newJsx, root), 2000)
 
 class Greating extends Component {
   constructor(props) {
@@ -19,7 +25,7 @@ class Greating extends Component {
     return <div>{this.props.title}Dylan Zhang</div>
   }
 }
-render(<Greating title="Hello" />, root)
+// render(<Greating title="Hello" />, root)
 
 function FuncComponent(props) {
   return <div>{props.title}Func Component</div>
