@@ -2,6 +2,15 @@ import { arrified, createStateNode, createTaskQueue, getTag } from '../Misc';
 
 const taskQueue = createTaskQueue();
 let subTask = null;
+let pendingCommit = null
+
+const commitAllWork = (fiber) => {
+  fiber.effects.forEach((item) => {
+    if (item.effectTag === 'placement') {
+      item.parent.stateNode.appendChild(item.stateNode)
+    }
+  })
+}
 
 const getFirstTask = () => {
   const task = taskQueue.pop();
@@ -54,6 +63,7 @@ const executeTask = (fiber) => {
     }
     currentExcutelyFiber = currentExcutelyFiber.parent
   }
+  pendingCommit = currentExcutelyFiber
 };
 
 const workLoop = (deadline) => {
@@ -62,6 +72,9 @@ const workLoop = (deadline) => {
   }
   while (subTask) {
     subTask = executeTask(subTask);
+  }
+  if (pendingCommit) {
+    commitAllWork(pendingCommit)
   }
 };
 
